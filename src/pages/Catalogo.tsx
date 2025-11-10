@@ -4,9 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import dishBacalhau from "@/assets/dish-bacalhau.jpg";
-import dishCataplana from "@/assets/dish-cataplana.jpg";
-import dishPastelNata from "@/assets/dish-pastelnata.jpg";
 import { Wine, UtensilsCrossed, Calendar, Gift } from "lucide-react";
 
 const Catalogo = () => {
@@ -16,24 +13,28 @@ const Catalogo = () => {
       price: "45.00€",
       description: "Vinho do Porto envelhecido, ideal para presente",
       icon: Wine,
+      image: "/img-catalogo/produto-vinho-porto.jpg",
     },
     {
       name: "Azeite Virgem Extra",
       price: "18.50€",
       description: "Azeite português premium de produção artesanal",
       icon: Gift,
+      image: "/img-catalogo/produto-azeite.jpg",
     },
     {
       name: "Voucher Presente 50€",
       price: "50.00€",
       description: "Vale-presente para usar no restaurante",
       icon: Gift,
+      image: "/img-catalogo/produto-voucher.jpg",
     },
     {
       name: "Kit Degustação",
       price: "35.00€",
       description: "Seleção de queijos e enchidos portugueses",
       icon: UtensilsCrossed,
+      image: "/img-catalogo/produto-kit-degustacao.jpg",
     },
   ];
 
@@ -43,24 +44,28 @@ const Catalogo = () => {
       price: "Reserva gratuita",
       description: "Mesa romântica junto à janela",
       disponivel: true,
+      image: "/img-catalogo/mesa-intima.jpg",
     },
     {
       name: "Mesa Familiar (4-6 pessoas)",
       price: "Reserva gratuita",
       description: "Mesa ampla no salão principal",
       disponivel: true,
+      image: "/img-catalogo/mesa-familiar.jpg",
     },
     {
       name: "Sala Privada (8-12 pessoas)",
       price: "50€ reserva",
       description: "Espaço exclusivo com ambiente reservado",
       disponivel: true,
+      image: "/img-catalogo/sala-privada.jpg",
     },
     {
       name: "Terraço (4 pessoas)",
       price: "Reserva gratuita",
       description: "Vista panorâmica de Alfama (sujeito a condições climáticas)",
       disponivel: false,
+      image: "/img-catalogo/terraco.jpg",
     },
   ];
 
@@ -70,24 +75,28 @@ const Catalogo = () => {
       price: "25€/pessoa",
       description: "Prova comentada de 5 vinhos portugueses com queijos",
       duracao: "90 minutos",
+      image: "/img-catalogo/servico-degustacao-vinhos.jpg",
     },
     {
       name: "Catering Corporativo",
       price: "A partir de 30€/pessoa",
       description: "Menu completo para eventos empresariais",
       duracao: "Serviço completo",
+      image: "/img-catalogo/servico-catering-corporativo.jpg",
     },
     {
       name: "Jantar Temático Fado",
       price: "60€/pessoa",
       description: "Menu completo com espetáculo de Fado ao vivo",
       duracao: "3 horas",
+      image: "/img-catalogo/servico-jantar-fado.jpg",
     },
     {
       name: "Aulas de Culinária",
       price: "75€/pessoa",
       description: "Aprenda a preparar pratos tradicionais portugueses",
       duracao: "3 horas",
+      image: "/img-catalogo/servico-aulas-culinaria.jpg",
     },
   ];
 
@@ -123,20 +132,31 @@ const Catalogo = () => {
             <TabsContent value="produtos">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {produtos.map((produto, index) => (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                        <produto.icon className="h-6 w-6 text-primary" />
+                  <Card key={index} className="overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
+                    <div className="aspect-square overflow-hidden bg-muted relative">
+                      <img 
+                        src={produto.image} 
+                        alt={produto.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                      <div className="absolute top-3 right-3 w-10 h-10 rounded-lg bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-md">
+                        <produto.icon className="h-5 w-5 text-primary" />
                       </div>
-                      <CardTitle className="text-xl">{produto.name}</CardTitle>
+                    </div>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-xl font-bold">{produto.name}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground mb-4">{produto.description}</p>
-                      <div className="flex items-center justify-between">
+                    <CardContent className="flex-1 flex flex-col">
+                      <p className="text-muted-foreground mb-4 text-sm flex-1">{produto.description}</p>
+                      <div className="flex items-center justify-between pt-2 border-t border-border">
                         <span className="text-2xl font-bold text-primary">{produto.price}</span>
                         <Link to="/reservas">
-                          <Button variant="outline" size="sm">
-                            Encomendar
+                          <Button variant="outline" size="sm" className="group/btn">
+                            <span className="group-hover/btn:translate-x-1 transition-transform duration-300 inline-block">
+                              Encomendar
+                            </span>
                           </Button>
                         </Link>
                       </div>
@@ -150,27 +170,34 @@ const Catalogo = () => {
             <TabsContent value="mesas">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                 {mesas.map((mesa, index) => (
-                  <Card key={index} className={`hover:shadow-lg transition-shadow ${!mesa.disponivel ? 'opacity-60' : ''}`}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-xl mb-2">{mesa.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{mesa.description}</p>
+                  <Card key={index} className={`overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full ${!mesa.disponivel ? 'opacity-60' : ''}`}>
+                    <div className="aspect-video overflow-hidden bg-muted relative">
+                      <img 
+                        src={mesa.image} 
+                        alt={mesa.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                      {!mesa.disponivel && (
+                        <div className="absolute top-3 right-3 bg-muted/90 backdrop-blur-sm text-muted-foreground px-3 py-1 rounded-md text-xs font-medium">
+                          Indisponível
                         </div>
-                        {!mesa.disponivel && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
-                            Indisponível
-                          </span>
-                        )}
-                      </div>
+                      )}
+                    </div>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-xl font-bold">{mesa.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-2">{mesa.description}</p>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="flex items-center justify-between pt-2 border-t border-border mt-auto">
                         <span className="text-lg font-bold text-primary">{mesa.price}</span>
                         <Link to="/reservas">
-                          <Button variant={mesa.disponivel ? "default" : "outline"} size="sm" disabled={!mesa.disponivel}>
+                          <Button variant={mesa.disponivel ? "default" : "outline"} size="sm" disabled={!mesa.disponivel} className="group/btn">
                             <Calendar className="mr-2 h-4 w-4" />
-                            Reservar
+                            <span className="group-hover/btn:translate-x-1 transition-transform duration-300 inline-block">
+                              Reservar
+                            </span>
                           </Button>
                         </Link>
                       </div>
@@ -184,21 +211,32 @@ const Catalogo = () => {
             <TabsContent value="servicos">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                 {servicos.map((servico, index) => (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-xl">{servico.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{servico.description}</p>
+                  <Card key={index} className="overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
+                    <div className="aspect-video overflow-hidden bg-muted relative">
+                      <img 
+                        src={servico.image} 
+                        alt={servico.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                    </div>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-xl font-bold">{servico.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-2">{servico.description}</p>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 flex flex-col">
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <span className="text-2xl font-bold text-primary block">{servico.price}</span>
                           <span className="text-sm text-muted-foreground">{servico.duracao}</span>
                         </div>
                       </div>
-                      <Link to="/reservas">
-                        <Button variant="default" className="w-full">
-                          Agendar Serviço
+                      <Link to="/reservas" className="mt-auto">
+                        <Button variant="default" className="w-full group/btn">
+                          <span className="group-hover/btn:translate-x-1 transition-transform duration-300 inline-block">
+                            Agendar Serviço
+                          </span>
                         </Button>
                       </Link>
                     </CardContent>

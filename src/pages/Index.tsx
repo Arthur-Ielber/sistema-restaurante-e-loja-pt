@@ -2,19 +2,67 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import QuickReservationDialog from "@/components/QuickReservationDialog";
 import MenuDialog from "@/components/MenuDialog";
+import ComandaDialog from "@/components/ComandaDialog";
+import { useComanda } from "@/contexts/ComandaContext";
 import heroImage from "@/assets/hero-restaurant.jpg";
 import dishBacalhau from "@/assets/dish-bacalhau.jpg";
 import dishCataplana from "@/assets/dish-cataplana.jpg";
 import dishPastelNata from "@/assets/dish-pastelnata.jpg";
-import { Calendar, UtensilsCrossed, Wine, ChefHat } from "lucide-react";
+import { Calendar, UtensilsCrossed, Wine, ChefHat, ShoppingCart } from "lucide-react";
 
 const Index = () => {
   const [quickReservationOpen, setQuickReservationOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [abrirComandaDialog, setAbrirComandaDialog] = useState(false);
+  const [modoVisualizacao, setModoVisualizacao] = useState(false);
+  const [nomeCliente, setNomeCliente] = useState("");
+  const { comandaAtual, criarComanda } = useComanda();
+
+  const handleVerMenu = () => {
+    // Se já tem comanda aberta, abrir menu direto com opção de adicionar
+    if (comandaAtual) {
+      setModoVisualizacao(false);
+      setMenuOpen(true);
+      return;
+    }
+
+    // Perguntar se quer abrir comanda
+    setAbrirComandaDialog(true);
+  };
+
+  const handleAbrirComanda = () => {
+    if (!nomeCliente.trim() || nomeCliente.trim().split(" ").length < 2) {
+      return;
+    }
+
+    // Criar comanda diretamente com o nome informado
+    criarComanda(nomeCliente.trim());
+    setAbrirComandaDialog(false);
+    setNomeCliente("");
+    setModoVisualizacao(false); // Com comanda, pode adicionar itens
+    setMenuOpen(true);
+  };
+
+  const handleNaoAbrirComanda = () => {
+    setAbrirComandaDialog(false);
+    setNomeCliente("");
+    setModoVisualizacao(true); // Modo apenas visualização
+    setMenuOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -55,7 +103,7 @@ const Index = () => {
             <Button 
               variant="accent" 
               size="xl"
-              onClick={() => setMenuOpen(true)}
+              onClick={handleVerMenu}
               className="group"
             >
               <UtensilsCrossed className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -210,8 +258,63 @@ const Index = () => {
       />
       <MenuDialog 
         open={menuOpen} 
-        onOpenChange={setMenuOpen} 
+        onOpenChange={setMenuOpen}
+        modoVisualizacao={modoVisualizacao}
       />
+
+      {/* Dialog de Abertura de Comanda */}
+      <Dialog open={abrirComandaDialog} onOpenChange={setAbrirComandaDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Abrir Comanda de Consumo
+            </DialogTitle>
+            <DialogDescription>
+              Para abrir uma comanda, informe seu nome completo abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <p className="text-sm font-medium">Ao abrir uma comanda, você poderá:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Adicionar itens do cardápio à sua comanda</li>
+                <li>Visualizar o total acumulado em tempo real</li>
+                <li>Pagar ao final pelo que foi consumido</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nome-cliente-inicial">Nome Completo *</Label>
+              <Input
+                id="nome-cliente-inicial"
+                placeholder="Ex: João Silva"
+                value={nomeCliente}
+                onChange={(e) => setNomeCliente(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && nomeCliente.trim().split(" ").length >= 2) {
+                    handleAbrirComanda();
+                  }
+                }}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Este nome será usado para identificação da sua comanda pelo garçom.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleNaoAbrirComanda}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleAbrirComanda}
+              disabled={!nomeCliente.trim() || nomeCliente.trim().split(" ").length < 2}
+            >
+              Abrir Comanda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
