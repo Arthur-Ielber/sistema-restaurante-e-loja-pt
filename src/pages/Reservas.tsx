@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
+import { useReserva } from "@/contexts/ReservaContext";
 import { Calendar, Clock, Users, ShoppingBag, Utensils } from "lucide-react";
 
 const Reservas = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { criarReserva } = useReserva();
   
   const [formData, setFormData] = useState({
     // Dados pessoais
@@ -71,34 +74,61 @@ const Reservas = () => {
       return;
     }
 
-    // Verificar se há pelo menos uma reserva
-    if (!formData.dataMesa && formData.produtos.length === 0 && formData.servicos.length === 0) {
+    // Verificar se há reserva de mesa
+    if (!formData.dataMesa || !formData.horaMesa) {
       toast({
-        title: "Nenhuma reserva selecionada",
-        description: "Por favor, selecione pelo menos uma mesa, produto ou serviço.",
+        title: "Reserva de mesa obrigatória",
+        description: "Para criar uma reserva, é necessário selecionar data e hora da mesa.",
         variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: "Reserva confirmada! ✓",
-      description: "Receberá um email de confirmação em breve.",
-    });
+    try {
+      // Criar reserva (isso também cria a comanda automaticamente)
+      const reservaId = criarReserva({
+        nomeCliente: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone,
+        dataReserva: new Date(formData.dataMesa),
+        horaReserva: formData.horaMesa,
+        numPessoas: parseInt(formData.numPessoas) || 2,
+        tipoMesa: formData.tipoMesa,
+        observacoes: formData.observacoes || undefined,
+        produtos: formData.produtos.length > 0 ? formData.produtos : undefined,
+        servicos: formData.servicos.length > 0 ? formData.servicos : undefined,
+      });
 
-    // Limpar formulário
-    setFormData({
-      nome: "",
-      email: "",
-      telefone: "+351 ",
-      dataMesa: "",
-      horaMesa: "",
-      numPessoas: "",
-      tipoMesa: "standard",
-      produtos: [],
-      servicos: [],
-      observacoes: "",
-    });
+      toast({
+        title: "Reserva confirmada! ✓",
+        description: "Sua reserva foi criada e uma comanda foi aberta automaticamente. Você pode adicionar itens à sua comanda.",
+      });
+
+      // Limpar formulário
+      setFormData({
+        nome: "",
+        email: "",
+        telefone: "+351 ",
+        dataMesa: "",
+        horaMesa: "",
+        numPessoas: "",
+        tipoMesa: "standard",
+        produtos: [],
+        servicos: [],
+        observacoes: "",
+      });
+
+      // Redirecionar para a página de pedidos após um breve delay
+      setTimeout(() => {
+        navigate("/pedidos");
+      }, 2000);
+    } catch (error) {
+      toast({
+        title: "Erro ao criar reserva",
+        description: "Ocorreu um erro ao criar a reserva. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const produtos = [

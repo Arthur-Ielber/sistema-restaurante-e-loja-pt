@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -44,11 +44,29 @@ const Pedidos = () => {
   const [comandaDialogOpen, setComandaDialogOpen] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("");
   const [observacoes, setObservacoes] = useState("");
+  const [jaPaga, setJaPaga] = useState<boolean>(true);
+  const isNavigatingAwayRef = useRef(false);
 
-  // Mostrar dialog de criação de comanda se não existir
+  // Mostrar dialog de criação de comanda apenas quando o componente monta sem comanda
+  // Não abrir quando uma comanda é fechada (vamos redirecionar para o painel)
   useEffect(() => {
+    // Não fazer nada se estamos navegando para fora da página
+    if (isNavigatingAwayRef.current) {
+      return;
+    }
+
+    // Só abrir o dialog se não há comanda atual
     if (!comandaAtual) {
-      setComandaDialogOpen(true);
+      const timer = setTimeout(() => {
+        // Verificar novamente se não estamos navegando antes de abrir
+        if (!isNavigatingAwayRef.current && !comandaAtual) {
+          setComandaDialogOpen(true);
+        }
+      }, 200);
+      return () => clearTimeout(timer);
+    } else {
+      // Se há comanda, garantir que o dialog está fechado
+      setComandaDialogOpen(false);
     }
   }, [comandaAtual]);
 
@@ -111,7 +129,8 @@ const Pedidos = () => {
   };
 
   const handleFecharComanda = () => {
-    if (!formaPagamento) {
+    // Se já está paga, forma de pagamento é obrigatória
+    if (jaPaga && !formaPagamento) {
       toast({
         title: "Forma de pagamento obrigatória",
         description: "Selecione a forma de pagamento antes de finalizar.",
@@ -120,20 +139,39 @@ const Pedidos = () => {
       return;
     }
 
-    fecharComanda(formaPagamento, observacoes || undefined);
-    toast({
-      title: "Comanda fechada!",
-      description: `Comanda #${comandaAtual?.numero} foi fechada e paga via ${formaPagamento}.`,
-    });
-
+    // Marcar que estamos navegando para evitar que o dialog apareça
+    isNavigatingAwayRef.current = true;
+    
+    // Fechar dialogs primeiro para evitar que o dialog de criação apareça
     setShowPaymentDialog(false);
+    setComandaDialogOpen(false);
+
+    // Armazenar o número da comanda antes de fechar (para o toast)
+    const numeroComanda = comandaAtual?.numero;
+
+    // Fechar a comanda
+    fecharComanda(formaPagamento || "dinheiro", observacoes || undefined, jaPaga);
+    
+    // Limpar estados
     setFormaPagamento("");
     setObservacoes("");
+    setJaPaga(true);
+    
+    // Mostrar toast
+    if (jaPaga) {
+      toast({
+        title: "Comanda fechada e paga!",
+        description: `Comanda #${numeroComanda} foi fechada e paga via ${formaPagamento}.`,
+      });
+    } else {
+      toast({
+        title: "Comanda fechada!",
+        description: `Comanda #${numeroComanda} foi fechada. O pagamento será processado posteriormente.`,
+      });
+    }
 
-    // Redirecionar para o painel após um breve delay
-    setTimeout(() => {
-      navigate("/painel");
-    }, 1500);
+    // Redirecionar para o painel imediatamente
+    navigate("/painel", { replace: true });
   };
 
   const formasPagamento: { value: FormaPagamento; label: string }[] = [
@@ -429,29 +467,64 @@ const Pedidos = () => {
           <DialogHeader>
             <DialogTitle>Fechar Comanda #{comandaAtual?.numero}</DialogTitle>
             <DialogDescription>
-              Selecione a forma de pagamento para finalizar a comanda.
+              Confirme se a conta já está com o pagamento correto e fechado.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="forma-pagamento">Forma de Pagamento *</Label>
-              <Select
-                value={formaPagamento}
-                onValueChange={(value) => setFormaPagamento(value as FormaPagamento)}
-              >
-                <SelectTrigger id="forma-pagamento">
-                  <SelectValue placeholder="Selecione a forma de pagamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formasPagamento.map((forma) => (
-                    <SelectItem key={forma.value} value={forma.value}>
-                      {forma.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="bg-muted p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total a pagar:</span>
+                <span className="text-2xl font-bold text-primary">{getTotalFormatado()}</span>
+              </div>
             </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">A conta já está paga?</Label>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={jaPaga ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setJaPaga(true)}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Sim, já está paga
+                </Button>
+                <Button
+                  type="button"
+                  variant={!jaPaga ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setJaPaga(false)}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Não, fechar sem pagar
+                </Button>
+              </div>
+            </div>
+
+            {jaPaga && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="forma-pagamento">Forma de Pagamento *</Label>
+                  <Select
+                    value={formaPagamento}
+                    onValueChange={(value) => setFormaPagamento(value as FormaPagamento)}
+                  >
+                    <SelectTrigger id="forma-pagamento">
+                      <SelectValue placeholder="Selecione a forma de pagamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formasPagamento.map((forma) => (
+                        <SelectItem key={forma.value} value={forma.value}>
+                          {forma.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="observacoes">Observações (opcional)</Label>
@@ -463,23 +536,23 @@ const Pedidos = () => {
                 rows={3}
               />
             </div>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Total a pagar:</span>
-                <span className="text-2xl font-bold text-primary">{getTotalFormatado()}</span>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowPaymentDialog(false);
+              setJaPaga(true);
+              setFormaPagamento("");
+            }}>
               <X className="mr-2 h-4 w-4" />
               Cancelar
             </Button>
-            <Button onClick={handleFecharComanda} disabled={!formaPagamento}>
+            <Button 
+              onClick={handleFecharComanda} 
+              disabled={jaPaga && !formaPagamento}
+            >
               <Check className="mr-2 h-4 w-4" />
-              Confirmar Pagamento
+              {jaPaga ? "Confirmar Pagamento" : "Fechar Comanda"}
             </Button>
           </DialogFooter>
         </DialogContent>

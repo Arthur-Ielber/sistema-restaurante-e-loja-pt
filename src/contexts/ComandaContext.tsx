@@ -50,10 +50,13 @@ interface ComandaContextType {
   confirmarItens: () => void;
   
   // Finalizar comanda (fechar)
-  fecharComanda: (formaPagamento: FormaPagamento, observacoes?: string) => void;
+  fecharComanda: (formaPagamento: FormaPagamento, observacoes?: string, jaPaga?: boolean) => void;
   
   // Marcar como paga
   marcarComoPaga: (comandaId: string) => void;
+  
+  // Reabrir comanda fechada
+  reabrirComanda: (comandaId: string) => void;
   
   // Obter totais
   getTotalComanda: (comandaId?: string) => number;
@@ -257,8 +260,8 @@ export const ComandaProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  // Fechar comanda (marcar como paga diretamente, já que foi paga)
-  const fecharComanda = (formaPagamento: FormaPagamento, observacoes?: string) => {
+  // Fechar comanda (pode fechar sem pagar ou já paga)
+  const fecharComanda = (formaPagamento: FormaPagamento, observacoes?: string, jaPaga: boolean = true) => {
     if (!comandaAtual) return;
 
     setComandas((prev) =>
@@ -274,10 +277,10 @@ export const ComandaProvider = ({ children }: { children: ReactNode }) => {
           return {
             ...comanda,
             items: novosItems,
-            status: "paga",
-            formaPagamento,
+            status: jaPaga ? "paga" : "fechada",
+            formaPagamento: jaPaga ? formaPagamento : undefined,
             dataFechamento: agora,
-            dataPagamento: agora,
+            dataPagamento: jaPaga ? agora : undefined,
             total,
             observacoes,
           };
@@ -304,6 +307,24 @@ export const ComandaProvider = ({ children }: { children: ReactNode }) => {
         return comanda;
       })
     );
+  };
+
+  // Reabrir comanda fechada
+  const reabrirComanda = (comandaId: string) => {
+    setComandas((prev) =>
+      prev.map((comanda) => {
+        if (comanda.id === comandaId && (comanda.status === "fechada" || comanda.status === "paga")) {
+          return {
+            ...comanda,
+            status: "aberta",
+            dataFechamento: undefined,
+            dataPagamento: undefined,
+          };
+        }
+        return comanda;
+      })
+    );
+    setComandaAtualId(comandaId);
   };
 
   // Obter total da comanda
@@ -374,6 +395,7 @@ export const ComandaProvider = ({ children }: { children: ReactNode }) => {
         confirmarItens,
         fecharComanda,
         marcarComoPaga,
+        reabrirComanda,
         getTotalComanda,
         getTotalFormatado,
         getItemCount,

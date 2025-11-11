@@ -1,18 +1,34 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Phone, MapPin, Menu, Home, BookOpen, Calendar, ShoppingCart, LayoutDashboard } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Phone, MapPin, Menu, Home, BookOpen, Calendar, ShoppingCart, LayoutDashboard, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "@/components/NavLink";
 import { useComanda } from "@/contexts/ComandaContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { getItemCount, comandaAtual } = useComanda();
+  const { user, logout, isAuthenticated, isAdmin, isGarcom } = useAuth();
   const cartItemCount = comandaAtual ? getItemCount() : 0;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const navItems = [
     { path: "/", label: "Início", icon: Home },
@@ -82,39 +98,48 @@ const Header = () => {
               </div>
             </div>
             <div className="hidden md:flex items-center gap-3">
-              <Link to="/pedidos" className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className={cn(
-                    "relative transition-all duration-300",
-                    isActive("/pedidos") ? "text-primary" : "text-foreground/70 hover:text-foreground"
-                  )}
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  {cartItemCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                    >
-                      {cartItemCount > 9 ? "9+" : cartItemCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-              <Link to="/painel">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className={cn(
-                    "relative transition-all duration-300",
-                    isActive("/painel") ? "text-primary" : "text-foreground/70 hover:text-foreground"
-                  )}
-                  title="Painel de Comandas"
-                >
-                  <LayoutDashboard className="h-5 w-5" />
-                </Button>
-              </Link>
+              {/* Botão de Comanda - visível para todos quando há comanda ou para garçons/admins */}
+              {(isAuthenticated || cartItemCount > 0) && (
+                <Link to="/pedidos" className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "relative transition-all duration-300",
+                      isActive("/pedidos") ? "text-primary" : "text-foreground/70 hover:text-foreground"
+                    )}
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartItemCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      >
+                        {cartItemCount > 9 ? "9+" : cartItemCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </Link>
+              )}
+
+              {/* Painel de Comandas - apenas para admin e garçom */}
+              {(isAdmin || isGarcom) && (
+                <Link to="/painel">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className={cn(
+                      "relative transition-all duration-300",
+                      isActive("/painel") ? "text-primary" : "text-foreground/70 hover:text-foreground"
+                    )}
+                    title="Painel de Comandas"
+                  >
+                    <LayoutDashboard className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
+              
+              {/* Botão de Reserva - sempre visível */}
               <Link to="/reservas">
                 <Button 
                   variant="hero" 
@@ -128,6 +153,47 @@ const Header = () => {
                   <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 </Button>
               </Link>
+
+              {/* Login/Logout */}
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{user?.nome}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        <p className="text-xs text-primary capitalize">{user?.role}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuItem onClick={() => navigate("/admin")}>
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          Administração
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline" size="default">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {/* Mobile Menu Button */}

@@ -24,6 +24,8 @@ import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ComandaDialog from "@/components/ComandaDialog";
+import ComandaDetalhesDialog from "@/components/ComandaDetalhesDialog";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useComanda, FormaPagamento } from "@/contexts/ComandaContext";
 import {
   ArrowLeft,
@@ -36,6 +38,8 @@ import {
   DollarSign,
   Smartphone,
   Printer,
+  RotateCcw,
+  Eye,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -52,6 +56,7 @@ const PainelComandas = () => {
     getTotalVendasDoDia,
     getTotalFormatado,
     marcarComoPaga,
+    reabrirComanda,
   } = useComanda();
 
   const [comandaDialogOpen, setComandaDialogOpen] = useState(false);
@@ -59,6 +64,8 @@ const PainelComandas = () => {
   const [selectedComanda, setSelectedComanda] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("");
+  const [comandaDetalhesId, setComandaDetalhesId] = useState<string | null>(null);
+  const [showComandaDetalhes, setShowComandaDetalhes] = useState(false);
 
   const comandasAbertas = getComandasAbertas();
   const comandasFechadas = getComandasFechadas();
@@ -112,6 +119,20 @@ const PainelComandas = () => {
     setSelectedComanda(null);
   };
 
+  const handleReabrirComanda = (comandaId: string) => {
+    reabrirComanda(comandaId);
+    toast({
+      title: "Comanda reaberta!",
+      description: "A comanda foi reaberta e está disponível para edição.",
+    });
+    navigate("/pedidos");
+  };
+
+  const handleVerDetalhes = (comandaId: string) => {
+    setComandaDetalhesId(comandaId);
+    setShowComandaDetalhes(true);
+  };
+
   const formatarData = (data: Date) => {
     return new Intl.DateTimeFormat("pt-PT", {
       day: "2-digit",
@@ -133,8 +154,9 @@ const PainelComandas = () => {
     : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <ProtectedRoute allowedRoles={["admin", "garcom"]}>
+      <div className="min-h-screen flex flex-col">
+        <Header />
 
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4 max-w-7xl">
@@ -265,14 +287,30 @@ const PainelComandas = () => {
                             {getTotalFormatado(comanda.id)}
                           </p>
                         </div>
+                        {comanda.observacoes && (
+                          <div className="p-2 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                            <p className="text-sm line-clamp-2">{comanda.observacoes}</p>
+                          </div>
+                        )}
                         <Separator />
-                        <Button
-                          onClick={() => handleAbrirComanda(comanda.id)}
-                          className="w-full"
-                          variant="default"
-                        >
-                          Abrir Comanda
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => handleAbrirComanda(comanda.id)}
+                            className="w-full"
+                            variant="default"
+                          >
+                            Abrir Comanda
+                          </Button>
+                          <Button
+                            onClick={() => handleVerDetalhes(comanda.id)}
+                            className="w-full"
+                            variant="outline"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalhes
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -324,14 +362,38 @@ const PainelComandas = () => {
                             {getTotalFormatado(comanda.id)}
                           </p>
                         </div>
+                        {comanda.observacoes && (
+                          <div className="p-2 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                            <p className="text-sm line-clamp-2">{comanda.observacoes}</p>
+                          </div>
+                        )}
                         <Separator />
-                        <Button
-                          onClick={() => handleMarcarComoPaga(comanda.id)}
-                          className="w-full"
-                          variant="default"
-                        >
-                          Marcar como Paga
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => handleMarcarComoPaga(comanda.id)}
+                            className="w-full"
+                            variant="default"
+                          >
+                            Marcar como Paga
+                          </Button>
+                          <Button
+                            onClick={() => handleReabrirComanda(comanda.id)}
+                            className="w-full"
+                            variant="outline"
+                          >
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Reabrir Comanda
+                          </Button>
+                          <Button
+                            onClick={() => handleVerDetalhes(comanda.id)}
+                            className="w-full"
+                            variant="outline"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalhes
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -362,50 +424,61 @@ const PainelComandas = () => {
                       <Card key={comanda.id} className="hover:shadow-lg transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-xl font-bold">Comanda #{comanda.numero}</h3>
-                              <Badge className="bg-green-50 text-green-700 border-green-200">
-                                Paga
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Cliente</p>
-                                <p className="font-medium">{comanda.nomeCliente}</p>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-xl font-bold">Comanda #{comanda.numero}</h3>
+                                <Badge className="bg-green-50 text-green-700 border-green-200">
+                                  Paga
+                                </Badge>
                               </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Data/Hora</p>
-                                <p className="font-medium">
-                                  {formatarData(comanda.dataPagamento || comanda.dataFechamento!)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Forma de Pagamento</p>
-                                <div className="flex items-center gap-2">
-                                  <FormaIcon className="h-4 w-4" />
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Cliente</p>
+                                  <p className="font-medium">{comanda.nomeCliente}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Data/Hora</p>
                                   <p className="font-medium">
-                                    {formatarFormaPagamento(comanda.formaPagamento)}
+                                    {formatarData(comanda.dataPagamento || comanda.dataFechamento!)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Forma de Pagamento</p>
+                                  <div className="flex items-center gap-2">
+                                    <FormaIcon className="h-4 w-4" />
+                                    <p className="font-medium">
+                                      {formatarFormaPagamento(comanda.formaPagamento)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Itens</p>
+                                  <p className="font-medium">{comanda.items.length}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Total</p>
+                                  <p className="text-xl font-bold text-primary">
+                                    {getTotalFormatado(comanda.id)}
                                   </p>
                                 </div>
                               </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Itens</p>
-                                <p className="font-medium">{comanda.items.length}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Total</p>
-                                <p className="text-xl font-bold text-primary">
-                                  {getTotalFormatado(comanda.id)}
-                                </p>
-                              </div>
-                            </div>
                               {comanda.observacoes && (
                                 <div className="mt-4 p-3 bg-muted rounded-lg">
-                                  <p className="text-sm text-muted-foreground">Observações</p>
-                                  <p className="text-sm">{comanda.observacoes}</p>
+                                  <p className="text-sm text-muted-foreground mb-1">Observações</p>
+                                  <p className="text-sm line-clamp-2">{comanda.observacoes}</p>
                                 </div>
                               )}
+                              <div className="mt-4">
+                                <Button
+                                  onClick={() => handleVerDetalhes(comanda.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Ver Detalhes Completos
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -424,6 +497,13 @@ const PainelComandas = () => {
         open={comandaDialogOpen}
         onOpenChange={setComandaDialogOpen}
         onComandaCriada={handleComandaCriada}
+      />
+
+      {/* Dialog de Detalhes da Comanda */}
+      <ComandaDetalhesDialog
+        comandaId={comandaDetalhesId}
+        open={showComandaDetalhes}
+        onOpenChange={setShowComandaDetalhes}
       />
 
       {/* Dialog de Pagamento para Comandas Fechadas */}
@@ -485,7 +565,8 @@ const PainelComandas = () => {
       </Dialog>
 
       <Footer />
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 };
 
