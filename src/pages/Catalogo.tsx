@@ -13,7 +13,7 @@ const Catalogo = () => {
       price: "45.00€",
       description: "Vinho do Porto envelhecido, ideal para presente",
       icon: Wine,
-      image: "/img-catalogo/produto-vinho-porto.jpg",
+      image: "/img-menu/bebida-vinho-porto.jpg",
     },
     {
       name: "Azeite Virgem Extra",
